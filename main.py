@@ -1,7 +1,11 @@
-from calendar import c
+##Romeo Vanegas
+##CSCI 154 - Bank Simulation
+
 from collections import deque
 import copy
 from scipy.stats import truncnorm
+import numpy as np
+import math
 import matplotlib.pyplot as plt
 
 #Customer and teller deque's, cust. maxlen is arbitrary
@@ -14,6 +18,15 @@ tell = deque(maxlen=10)
 
 #Customer VIP Deque
 custVip = deque(maxlen=15)
+fastService = deque(maxlen=15)
+#Array Holding Waiting Time of Customers
+waitTimePerCust = []
+
+##Stats Variables
+low = 5
+high = 15
+mean = 5
+std = 0.5
 
 ####Globals#####
 #global for number of minutes in 8 hours (sim run time)
@@ -25,12 +38,19 @@ workUnitsTotal = 800
 totalCustomers = 160
 #All teller windows busy counter
 tellerBusyCounter = 0
+#Customer Waiting Time
+waitingTime = 0
+
+#Flag if using Priority Queue
+usingPq = False
+#Array of normal distribution of arrival times
+s = np.random.uniform(0,minutes,totalCustomers)
 
 ####################################################################
 ##################### Customer/Teller classes ######################
 
 class Customer:
-    def __init__(self, wu, status,vip):
+    def __init__(self, wu, status,vip, waitTime):
         ##Initialize member varibles
         #Work units variable
         self.wu = wu
@@ -38,6 +58,8 @@ class Customer:
         self.status = status
         # VIP (priority) flag is set to 0 unless given higher priority then 1
         self.vip = vip
+        #Customers Individual Waiting Time
+        self.waitTime = waitTime
 
     def custStats(self):
         ##Customer Statistics
@@ -67,6 +89,7 @@ class Teller:
 #When teller is avaiable, calls next customer. Also sets 
 #Teller status to Busy (1). IDX passes the index of avaiable teller.
 def helpCustomer(IDX):
+    global waitTimePerCust
     #Pops from customer deque and assigns customer to teller IDX (swap)
     nextp = cust.popleft()
     tell[IDX].currentCust = nextp
@@ -74,6 +97,8 @@ def helpCustomer(IDX):
     tell[IDX].currentCust.status = 0
     #Teller Status set to busy (1)
     tell[IDX].status = 1
+    waitTimePerCust.append(tell[IDX].currentCust.waitTime)
+    tell[IDX].currentCust.waitTime = 0
     #tell[IDX].tellStats()
     #print functions for debugging
     #print(tell[IDX].currentCust.wu,tell[IDX].currentCust.status,tell[IDX].currentCust.vip)
@@ -104,6 +129,12 @@ def custTransaction():
         counter += 1
                 
 
+#Handles increasing each customers wait time in line
+def custWaitTime():
+    for i in range(0,len(cust)):
+        if cust[i].status == 1:
+            cust[i].waitTime += 1
+
 #Populates Teller line for simulation start - with maxlen(10) amount of tellers
 #Each teller is set with max amount of workunits(80)
 def tellerPopulate():
@@ -120,11 +151,14 @@ def tellerPopulate():
 #Polulates (append) Customer deque - one customer at a time
 #Work units are randomly generated - values between 5-15
 #All customers status is set to waiting (1) by default
-def customerPopuluate():
+def customerPopuluate(isPq):
     #workunits = randint(5,15)
-    wu = get_truncated_normal(mean=5, sd=0.5, low=5, upp=15)
-    custDefault = Customer(wu.rvs(1),1,0)
-    cust.append(custDefault)
+    wu = get_truncated_normal(mean, std, low, high)
+    custDefault = Customer(wu.rvs(1),1,0,0)
+    if isPq:
+        fastService.append(custDefault)
+    else:
+        cust.append(custDefault)
     ##print function for debugging
     #print("Debut: Printing Customer 1's Stats")
     #cust[0].custStats()
@@ -153,9 +187,11 @@ def moveCurrentCust(old,new):
 #Checks teller stats: 1 = busy or 0 = available
 def openWindow(prevWindow, swap):
     counter = 0
+    global waitingTime
     while counter < (tell.maxlen):
         if (tell[counter].status == 0 and tell[counter].wu > 0 and cust[0].vip == 0):
             helpCustomer(counter)
+            
             #print(f"Found one at: ", counter)
             break
 
@@ -166,13 +202,25 @@ def openWindow(prevWindow, swap):
         elif tell[counter].status == 1:
             counter += 1
             #print("Window Current Counter: %d" %counter)
-        else:
-            print("Windows full")
-            break
+        # else:
+        #     print("Windows full")
+        #     break
+    waitingTime += 1
+    
 #Creates Normal Distribution of numbers
-def get_truncated_normal(mean, sd, low, upp):
+def get_truncated_normal(mean, std, low, high):
     return truncnorm(
-        (low - mean) / sd, (upp - mean) / sd, loc=mean, scale=sd)
+        (low - mean) / std, (high - mean) / std, loc=mean, scale=std)
+
+#Uniform distribution of numbers
+def norm_dist ():
+    count = 0
+    arry = []
+    s.sort()
+    while count < s.size:
+        arry.append(math.floor(s[count]))
+        count += 1
+    return(arry)
 
 ############################################################################################
 #################################### Main Program ##########################################
@@ -197,7 +245,7 @@ def get_truncated_normal(mean, sd, low, upp):
 # Initialization Step
 tellerPopulate()
 for i in range(0,cust.maxlen):
-    customerPopuluate()
+    customerPopuluate(usingPq)
 
 for i in range(0,cust.maxlen):
     print("Printing Stats of Customer: %d in Queue" % (i+1))
@@ -214,6 +262,7 @@ while workDayTime > 0 and customersServed < 160 and workUnitsTotal > 0:
         workUnitDec()
         print("Work Units remaning %d" %workUnitsTotal)
     custTransaction()  
+    custWaitTime()
     workDayTime -= 1
     timePassed += 1
     #print("Work Units remaning %d" %workUnitsTotal)
@@ -221,6 +270,13 @@ print(cust.maxlen)
 for i in range(0,len(cust)):
     print("Cust %d" %(i+1))
     cust[i].custStats()
+
+
+print("Printing Wait Times List")
+for i in range(0, len(waitTimePerCust)):
+    print("Customer %d : " %(i+1))
+    print(waitTimePerCust[i])
+
 print("Simulation Finished")
     
 #############################################################
