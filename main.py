@@ -1,25 +1,29 @@
 # Romeo Vanegas
 # CSCI 154 - Bank Simulation
 
-from audioop import avg
 from collections import deque
 import copy
 from scipy.stats import truncnorm
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+#import pandas as pd
 
 # Customer and teller deque's, cust. maxlen is arbitrary
 # Simluation requires maxlen 10 for teller deque
 
+tellerTotal = 11
+totalLoops = 5000
+# Flag if using Priority Queue
+usingPq = True
+
 # Customer Deque
 cust = deque(maxlen=160)
 # Teller Deque
-tell = deque(maxlen=10)
+tell = deque(maxlen=tellerTotal)
 
 # Customer VIP Deque
-custVip = deque(maxlen=15)
-fastService = deque(maxlen=15)
+fastService = deque(maxlen=20)
 # Array Holding Waiting Time of Customers
 waitTimePerCust = []
 
@@ -28,6 +32,12 @@ custUnserved = []
 
 #Array holding number of customers served per iteration
 custServed = []
+
+#Array to hold customer workunits to determine average
+custWorkUnits = []
+
+#List of All Customer arrival times Generated per day (iterations)
+custTotalArrivalTimes = []
 
 # Stats Variables
 low = 5
@@ -39,8 +49,8 @@ std = 0.5
 # global for number of minutes in 8 hours (sim run time)
 minutes = 480
 # total number of work units per Teller
-workUnits = 80
-workUnitsTotal = 800
+workUnits = 160
+workUnitsTotal = workUnits * tellerTotal
 # total number of customers in 8 hours
 totalCustomers = 160
 # All teller windows busy counter
@@ -48,8 +58,9 @@ tellerBusyCounter = 0
 # Customer Waiting Time
 waitingTime = 0
 
-# Flag if using Priority Queue
-usingPq = False
+
+
+
 # Array of normal distribution of arrival times
 s = np.random.uniform(0, minutes, totalCustomers)
 
@@ -102,18 +113,28 @@ class Teller:
 
 def helpCustomer(IDX):
     global waitTimePerCust
-    # Pops from customer deque and assigns customer to teller IDX (swap)
-    nextp = cust.popleft()
-    tell[IDX].currentCust = nextp
-    # Customer status set to helped (0)
-    tell[IDX].currentCust.status = 0
-    # Teller Status set to busy (1)
-    tell[IDX].status = 1
-    waitTimePerCust.append(tell[IDX].currentCust.waitTime)
-    tell[IDX].currentCust.waitTime = 0
-    # tell[IDX].tellStats()
-    # print functions for debugging
-    # print(tell[IDX].currentCust.wu,tell[IDX].currentCust.status,tell[IDX].currentCust.vip)
+
+    if usingPq and len(fastService) > 0:
+        nextp = fastService.popleft()
+        tell[IDX].currentCust = nextp
+        tell[IDX].currentCust.status = 0
+        tell[IDX].status = 1
+        waitTimePerCust.append(tell[IDX].currentCust.waitTime)
+        tell[IDX].currentCust.waitTime = 0
+
+    else:
+        # Pops from customer deque and assigns customer to teller IDX (swap)
+        nextp = cust.popleft()
+        tell[IDX].currentCust = nextp
+        # Customer status set to helped (0)
+        tell[IDX].currentCust.status = 0
+        # Teller Status set to busy (1)
+        tell[IDX].status = 1
+        waitTimePerCust.append(tell[IDX].currentCust.waitTime)
+        tell[IDX].currentCust.waitTime = 0
+        # tell[IDX].tellStats()
+        # print functions for debugging
+        # print(tell[IDX].currentCust.wu,tell[IDX].currentCust.status,tell[IDX].currentCust.vip)
 
 # Handles decrementing customer and teller work units with passage of time
 
@@ -141,6 +162,10 @@ def custTransaction():
                 tell[counter].currentCust.status = 0
                 customersServed += 1
 
+            elif tell[counter].wu == 0 and usingPq:
+                tell[counter].currentCust.vip = 1
+                fastService.appendleft(tell[counter].currentCust)
+
             elif tell[counter].wu == 0:
                 tell[counter].currentCust.vip = 1
                 cust.appendleft(tell[counter].currentCust)
@@ -152,6 +177,10 @@ def custWaitTime():
     for i in range(0, len(cust)):
         if cust[i].status == 1:
             cust[i].waitTime += 1
+    if usingPq:
+        for i in range(0,len(fastService)):
+            if fastService[i].status == 1:
+                fastService[i].waitTime += 1
 
 # Populates Teller line for simulation start - with maxlen(10) amount of tellers
 # Each teller is set with max amount of workunits(80)
@@ -177,9 +206,9 @@ def customerPopuluate(isPq):
     #workunits = randint(5,15)
     wu = get_truncated_normal(mean, std, low, high)
     units = wu.rvs(1)
-
+    custWorkUnits.append(round(units[0]))
     custDefault = Customer(round(units[0]), 1, 0, 0)
-    if isPq:
+    if isPq and units[0] <= 5:
         fastService.append(custDefault)
     else:
         cust.append(custDefault)
@@ -216,7 +245,28 @@ def moveCurrentCust(old, new):
 def openWindow():
     counter = 0
     global waitingTime
-    if len(cust) > 0:
+
+    if len(fastService) > 0 and usingPq:
+        while counter < (tell.maxlen):
+            if (tell[counter].status == 0 and tell[counter].wu > 0 and fastService[0].vip == 0):
+                helpCustomer(counter)
+
+                #print(f"Found one at: ", counter)
+                break
+
+            elif tell[counter].status == 0 and tell[counter].wu > 0 and fastService[0].vip == 1:
+                # moveCurrentCust(prevWindow,counter)
+                helpCustomer(counter)
+                break
+            elif tell[counter].status == 1:
+                counter += 1
+                #print("Window Current Counter: %d" %counter)
+            # else:
+            #     print("Windows full")
+            #     break
+        waitingTime += 1
+
+    elif len(cust) > 0:
         while counter < (tell.maxlen):
             if (tell[counter].status == 0 and tell[counter].wu > 0 and cust[0].vip == 0):
                 helpCustomer(counter)
@@ -275,15 +325,17 @@ def norm_dist():
 
 #------------------------------- My Main Testing----------------------------------#
 
+print("--------Moving on to Main Loop--------")
 
-for i in range(0,1000):
-
+for i in range(0,totalLoops):
     # Initialization Step
     tellerPopulate()
     # for i in range(0,cust.maxlen):
     #     customerPopuluate(usingPq)
 
     custArrivalTimes = norm_dist()
+    custTotalArrivalTimes.extend(custArrivalTimes)
+    
 
     # for i in range(0,len(custArrivalTimes)):
     #     print(custArrivalTimes[i])
@@ -296,10 +348,10 @@ for i in range(0,1000):
     timePassed = 0
     customersServed = 0
     laterArrival = False
-    workUnitsTotal = 800
-    print("--------Moving on to Main Loop--------")
+    workUnitsTotal = tellerTotal * workUnits
+   
     # print(len(custArrivalTimes))
-    while workDayTime > 0 and customersServed < 160 and workUnitsTotal > 0:
+    while (workDayTime > 0 and customersServed < 160 and workUnitsTotal > 0):
         while True and len(custArrivalTimes) > 0:
             if custArrivalTimes[0] == timePassed:
                 # print(custArrivalTimes[timePassed])
@@ -321,7 +373,7 @@ for i in range(0,1000):
     #print("Work Units remaning %d" %workUnitsTotal)
 # print(cust.maxlen)
 
-    print("Work Units remaning %d" % workUnitsTotal)
+    #print("Work Units remaning %d" % workUnitsTotal)
 
     for i in range(0,len(tell)):
         if tell[i].status == 1:
@@ -330,7 +382,11 @@ for i in range(0,1000):
             tell[i].status = 0
     
     custUnserved.append(len(cust))
+    if usingPq:
+        custUnserved.append(len(fastService))
+        fastService.clear()
     custServed.append(customersServed)
+    
     tell.clear()
     cust.clear()
 
@@ -353,10 +409,132 @@ for i in range(0,1000):
 print("Number of Customer Wait Times: %d" %len(waitTimePerCust))
 # print("Simulation Finished")
 
+avgWorkUnits = np.average(custWorkUnits)
 avgWaitTime = np.average(waitTimePerCust)
 avgUnserved = np.average(custUnserved)
-print(avgWaitTime)
-print("Average Customer Wait Time: %d" %avgWaitTime)
-print("Average Customers Unserved Per Day: %d" %avgUnserved)
+avgCustServed = np.average(custServed)
+print("Average Customer Workunit Transaction: %f" %avgWorkUnits)
+print("Average Customer Wait Time: %f" %avgWaitTime)
+print("Average Customers Unserved Per Day: %f" %avgUnserved)
+print("Average Customers Served Per Work Day: %f" % avgCustServed)
 
+
+f = open('statsfile.txt','a')
+
+if usingPq != True:
+    f.write('%d Loops with No Priority Queue, %d Tellers, ~N(5,0.5) Customer Distribution \n' % (totalLoops, tell.maxlen))
+    f.write('Average Customer Workunit Transaction: %f \n' %avgWorkUnits)
+    f.write('Average Customer Wait Time: %f \n'% avgWaitTime)
+    f.write('Average Customers Unserved Per Day: %f \n' % avgUnserved)
+    f.write('Average Customers Served Per Work Day: %f \n'% avgCustServed)
+    f.write('\n')
+
+
+    data = np.asarray(custWorkUnits)
+    plt.hist(data, bins=15)
+    # n, bins, patches = plt.hist(custWorkUnits,160, density=1,color='blue',alpha = 0.7)
+    # plt.bar([5,6,7,8,9,10,11,12,13,14,15], custWorkUnits)
+    plt.xlabel('Work Units')
+    plt.ylabel('Number of Customers')
+    plt.title('Distribution of Customers and Work Units')
+    plt.savefig(fname="Distribution of Customers and Work Units")
+    plt.clf()
+    #plt.show()
+
+    data = np.asanyarray(custServed)
+    plt.hist(data)
+    plt.xlabel('Customers Served')
+    plt.ylabel('Frequency')
+    plt.title('Customers Served Over %d Days (Iterations) without Priority Queue' %totalLoops)
+    plt.savefig(fname='Customers Served Over %d Days (Iterations) without Priority Queue' %totalLoops)
+    plt.clf()
+    #plt.show()
+
+    data = np.asanyarray(custUnserved)
+    plt.hist(data)
+    plt.xlabel('Customers Not Served')
+    plt.ylabel('Frequency')
+    plt.title('Customers Not Served Over %d Days (Iterations) without Priority Queue' %totalLoops)
+    plt.savefig(fname='Customers Not Served Over %d Days (Iterations) without Priority Queue' %totalLoops)
+    plt.clf()
+    #plt.show()
+
+    data = np.asanyarray(waitTimePerCust)
+    plt.hist(data)
+    plt.xlabel('Time Spent Waiting')
+    plt.ylabel('Frequency')
+    plt.title('Customer Waiting Times Over %d Days (Iterations) without Priority Queue' %totalLoops)
+    plt.savefig(fname='Customer Waiting Times Over %d Days (Iterations) without Priority Queue' %totalLoops)
+    plt.clf()
+    #plt.show()
+
+    data = np.asanyarray(custTotalArrivalTimes)
+    plt.hist(data)
+    plt.xlabel('Time of Arrival (8 hours = 480 Minutes)')
+    plt.ylabel('Frequency')
+    plt.title('Customer Arrival Times by Minute Over %d Days (Iterations)' %totalLoops)
+    plt.savefig('Customer Arrival Times by Minute Over %d Days (Iterations)' %totalLoops)
+    plt.clf()
+    #plt.show()
+
+    print("Customer Arrival Time Array Length: %d" %len(custTotalArrivalTimes))
+
+
+else:
+    f.write('%d Loops with a Priority Queue, %d Tellers, ~N(5,0.5) Customer Distribution \n' % (totalLoops, tell.maxlen))
+    f.write('Average Customer Workunit Transaction: %f \n' %avgWorkUnits)
+    f.write('Average Customer Wait Time: %f \n'% avgWaitTime)
+    f.write('Average Customers Unserved Per Day: %f \n' % avgUnserved)
+    f.write('Average Customers Served Per Work Day: %f \n'% avgCustServed)
+    f.write('\n')
+
+    data = np.asarray(custWorkUnits)
+    plt.hist(data, bins=15)
+    # n, bins, patches = plt.hist(custWorkUnits,160, density=1,color='blue',alpha = 0.7)
+    # plt.bar([5,6,7,8,9,10,11,12,13,14,15], custWorkUnits)
+    plt.xlabel('Work Units')
+    plt.ylabel('Number of Customers')
+    plt.title('Distribution of Customers and Work Units')
+    plt.savefig(fname='Distribution of Customers and Work Units')
+    plt.clf()
+    #plt.show()
+
+    data = np.asanyarray(custServed)
+    plt.hist(data)
+    plt.xlabel('Customers Served')
+    plt.ylabel('Frequency')
+    plt.title('Customers Served Over %d Days (Iterations) With Priority Queue' %totalLoops)
+    plt.savefig(fname='Customers Served Over %d Days (Iterations) With Priority Queue' %totalLoops)
+    plt.clf()
+    #plt.show()
+
+    data = np.asanyarray(custUnserved)
+    plt.hist(data)
+    plt.xlabel('Customers Not Served')
+    plt.ylabel('Frequency')
+    plt.title('Customers Not Served Over %d Days (Iterations) With Priority Queue' %totalLoops)
+    plt.savefig(fname='Customers Not Served Over %d Days (Iterations) With Priority Queue' %totalLoops)
+    plt.clf()
+    #plt.show()
+
+    data = np.asanyarray(waitTimePerCust)
+    plt.hist(data)
+    plt.xlabel('Time Spent Waiting')
+    plt.ylabel('Frequency')
+    plt.title('Customer Waiting Times Over %d Days (Iterations) With Priority Queue' %totalLoops)
+    plt.savefig(fname='Customer Waiting Times Over %d Days (Iterations) With Priority Queue' %totalLoops)
+    plt.clf()
+    #plt.show()
+
+    data = np.asanyarray(custTotalArrivalTimes)
+    plt.hist(data)
+    plt.xlabel('Time of Arrival (8 hours = 480 Minutes)')
+    plt.ylabel('Frequency')
+    plt.title('Customer Arrival Times by Minute Over %d Days (Iterations)' %totalLoops)
+    plt.savefig(fname='Customer Arrival Times by Minute Over %d Days (Iterations)' %totalLoops)
+    plt.clf()
+    #plt.show()
+    
+
+f.close()
 #############################################################
