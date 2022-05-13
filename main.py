@@ -1,5 +1,6 @@
 # Romeo Vanegas
 # CSCI 154 - Bank Simulation
+# Spring 2022 
 
 from collections import deque
 import copy
@@ -59,14 +60,11 @@ tellerBusyCounter = 0
 waitingTime = 0
 
 
-
-
 # Array of normal distribution of arrival times
 s = np.random.uniform(0, minutes, totalCustomers)
 
 ####################################################################
 ##################### Customer/Teller classes ######################
-
 
 class Customer:
     def __init__(self, wu, status, vip, waitTime):
@@ -107,11 +105,17 @@ class Teller:
 ########################################################
 ##################### Functions ########################
 ########################################################
+
 # When teller is avaiable, calls next customer. Also sets
 # Teller status to Busy (1). IDX passes the index of avaiable teller.
-
-
 def helpCustomer(IDX):
+    """When teller becomes available (status = 0), function will assign next available
+    customer (either from priority queue or normal queue ) to idle teller window. Queue choice
+    depends if usingPq is true or false.
+
+    Args:
+        IDX (integer): teller window number.
+    """
     global waitTimePerCust
 
     if usingPq and len(fastService) > 0:
@@ -134,8 +138,9 @@ def helpCustomer(IDX):
         tell[IDX].currentCust.waitTime = 0
 
 # Handles decrementing customer and teller work units with passage of time
-
 def workUnitDec():
+    """Decrements work units for customer and teller by -1 with each call. 
+    """
     counter = 0
     global workUnitsTotal
     while counter < tell.maxlen:
@@ -146,8 +151,11 @@ def workUnitDec():
         counter += 1
 
 # Handles checking if Customer's transaction has finished
-
 def custTransaction():
+    """Checks teller's status. If teller workunits reaches 0, then customer is either
+    marked as served, or reassigned back to the front of the queue (or priority queue,
+    depending if usingPq is true).
+    """
     counter = 0
     global customersServed
     while counter < tell.maxlen:
@@ -166,10 +174,10 @@ def custTransaction():
                 cust.appendleft(tell[counter].currentCust)
         counter += 1
 
-
 # Handles increasing each customers wait time in line
-
 def custWaitTime():
+    """Increments customer wait times while waiting in line.
+    """
     for i in range(0, len(cust)):
         if cust[i].status == 1:
             cust[i].waitTime += 1
@@ -180,8 +188,10 @@ def custWaitTime():
 
 # Populates Teller line for simulation start - with maxlen(10) amount of tellers
 # Each teller is set with max amount of workunits(80)
-
 def tellerPopulate():
+    """Populates teller 'line' with teller defaults. 
+    Teller Class defaults (workUnits, status, current customer)
+    """
     counter = 0
     while counter < (tell.maxlen):
         tellerDefault = Teller(workUnits, 0, 0)
@@ -191,10 +201,14 @@ def tellerPopulate():
 # Polulates (append) Customer deque - one customer at a time
 # Work units are randomly generated - values between 5-15
 # All customers status is set to waiting (1) by default
-
-
 def customerPopuluate(isPq):
-    #workunits = randint(5,15)
+    """Function for customer 'insertion.' 1 customer per call.
+    Work units are generated via normal distribution. Fills both 
+    queues (normal and priority).
+
+    Args:
+        isPq (bool): True = priority queue, False = normal. 
+    """
     wu = get_truncated_normal(mean, var, low, high)
     units = wu.rvs(1)
     custWorkUnits.append(round(units[0]))
@@ -207,9 +221,14 @@ def customerPopuluate(isPq):
 # Moves customer from one teller window to another by deepcopying
 # customer class values to the new teller window, the old teller's
 # current customer class values are set to 0
-
-
 def moveCurrentCust(old, new):
+    """Function copies current customer at teller window [old], and moves them
+    to another window [New]. 
+
+    Args:
+        old (Integer): Originating teller window.
+        new (Integer): Destination teller window.
+    """
     # New teller accepts customer from old teller (swap)
     newt = copy.deepcopy(tell[old].currentCust)
     tell[new].currentCust = newt
@@ -223,8 +242,11 @@ def moveCurrentCust(old, new):
 
 # Checks for which teller window is available to help a customer
 # Checks teller stats: 1 = busy or 0 = available
-
 def openWindow():
+    """Checks teller window status: 1 = busy or 0 = idle for either priority or
+    normal queue. Will assign customer to a teller if status is 0 and has 
+    work units available.  
+    """
     counter = 0
     global waitingTime
 
@@ -257,14 +279,26 @@ def openWindow():
         waitingTime += 1
 
 # Creates Normal Distribution of numbers
-
 def get_truncated_normal(mean, var, low, high):
+    """Creates a truncated normal distribution for work unit generation. 
+
+    Args:
+        mean (Integer): Mean (average)
+        var (Float): Variance
+        low (Integer): Lowest value of range
+        high (integer): Highest value of range
+
+    Returns:
+        float : returns a distribution between 5(low) - 15(high), with a mean of 5, varience of 0.5. 
+    """
     return truncnorm(
         (low - mean) / var, (high - mean) / var, loc=mean, scale=var)
 
 # Uniform distribution of numbers
-
 def norm_dist():
+    """Returns a list of numbers in the form of a uniform normal distribution. 
+    The floor value is taken for each value due to logic constraints. 
+    """
     count = 0
     arry = []
     s.sort()
@@ -276,10 +310,7 @@ def norm_dist():
 ############################################################################################
 #################################### Main Program ##########################################
 
-
-#------------------------------- My Main Testing----------------------------------#
-
-print("--------Moving on to Main Loop--------")
+print("--------Please wait while simulation runs. For totalLoops > 1000, it may take a while.--------")
 
 for i in range(0,totalLoops):
     # Initialization Step
@@ -357,34 +388,30 @@ if usingPq != True:
     plt.title('Distribution of Customers and Work Units')
     plt.savefig(fname="Distribution of Customers and Work Units")
     plt.clf()
- 
 
     data = np.asanyarray(custServed)
     plt.hist(data)
     plt.xlabel('Customers Served')
     plt.ylabel('Frequency')
-    plt.title('Customers Served Over %d Days (Iterations) w/o Priority Queue' %totalLoops)
-    plt.savefig(fname='Customers Served Over %d Days (Iterations) w/o Priority Queue' %totalLoops)
+    plt.title('Customers Served Over %d Days (Iterations) without Priority Queue' %totalLoops)
+    plt.savefig(fname='Customers Served Over %d Days (Iterations) without Priority Queue' %totalLoops)
     plt.clf()
-
 
     data = np.asanyarray(custUnserved)
     plt.hist(data)
     plt.xlabel('Customers Not Served')
     plt.ylabel('Frequency')
-    plt.title('Customers Not Served Over %d Days (Iterations) w/o Priority Queue' %totalLoops)
-    plt.savefig(fname='Customers Not Served Over %d Days (Iterations) w/o Priority Queue' %totalLoops)
+    plt.title('Customers Not Served Over %d Days (Iterations) without Priority Queue' %totalLoops)
+    plt.savefig(fname='Customers Not Served Over %d Days (Iterations) without Priority Queue' %totalLoops)
     plt.clf()
-
 
     data = np.asanyarray(waitTimePerCust)
     plt.hist(data)
     plt.xlabel('Time Spent Waiting')
     plt.ylabel('Frequency')
-    plt.title('Customer Waiting Times Over %d Days (Iterations) w/o Priority Queue' %totalLoops)
-    plt.savefig(fname='Customer Waiting Times Over %d Days (Iterations) w/o Priority Queue' %totalLoops)
+    plt.title('Customer Waiting Times Over %d Days (Iterations) without Priority Queue' %totalLoops)
+    plt.savefig(fname='Customer Waiting Times Over %d Days (Iterations) without Priority Queue' %totalLoops)
     plt.clf()
-
 
     data = np.asanyarray(custTotalArrivalTimes)
     plt.hist(data)
@@ -393,7 +420,6 @@ if usingPq != True:
     plt.title('Customer Arrival Times by Minute Over %d Days (Iterations)' %totalLoops)
     plt.savefig('Customer Arrival Times by Minute Over %d Days (Iterations)' %totalLoops)
     plt.clf()
-
 
     print("Customer Arrival Time Array Length: %d" %len(custTotalArrivalTimes))
 
@@ -414,33 +440,29 @@ else:
     plt.savefig(fname='Distribution of Customers and Work Units')
     plt.clf()
 
-
     data = np.asanyarray(custServed)
     plt.hist(data)
     plt.xlabel('Customers Served')
     plt.ylabel('Frequency')
-    plt.title('Customers Served Over %d Days (Iterations) With P. Queue' %totalLoops)
-    plt.savefig(fname='Customers Served Over %d Days (Iterations) With P. Queue' %totalLoops)
+    plt.title('Customers Served Over %d Days (Iterations) With Priority Queue' %totalLoops)
+    plt.savefig(fname='Customers Served Over %d Days (Iterations) With Priority Queue' %totalLoops)
     plt.clf()
-
 
     data = np.asanyarray(custUnserved)
     plt.hist(data)
     plt.xlabel('Customers Not Served')
     plt.ylabel('Frequency')
-    plt.title('Customers Not Served Over %d Days (Iterations) With P. Queue' %totalLoops)
-    plt.savefig(fname='Customers Not Served Over %d Days (Iterations) With P. Queue' %totalLoops)
+    plt.title('Customers Not Served Over %d Days (Iterations) With Priority Queue' %totalLoops)
+    plt.savefig(fname='Customers Not Served Over %d Days (Iterations) With Priority Queue' %totalLoops)
     plt.clf()
-
 
     data = np.asanyarray(waitTimePerCust)
     plt.hist(data)
     plt.xlabel('Time Spent Waiting')
     plt.ylabel('Frequency')
-    plt.title('Customer Waiting Times Over %d Days (Iterations) With P. Queue' %totalLoops)
-    plt.savefig(fname='Customer Waiting Times Over %d Days (Iterations) With P. Queue' %totalLoops)
+    plt.title('Customer Waiting Times Over %d Days (Iterations) With Priority Queue' %totalLoops)
+    plt.savefig(fname='Customer Waiting Times Over %d Days (Iterations) With Priority Queue' %totalLoops)
     plt.clf()
-  
 
     data = np.asanyarray(custTotalArrivalTimes)
     plt.hist(data)
