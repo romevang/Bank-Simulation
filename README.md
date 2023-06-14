@@ -1,7 +1,5 @@
-# Bank-Simulation
-CSCI 154 - Simulation
-
-Project: Bank Simulation
+# Bank-Simulation Project - Spring 2022
+This project was for my [CSCI 154](https://www.fresnostate.edu/catalog/courses-by-department/computer-science/#csci154) - Simulation course at CSU - Fresno.
 
 Prompt:
 ***Simulate a bank with 10 windows with the same efficiency of 10 wu/hr. Assume that 160 customers arrive in a working day (of 8 hours) following a uniform distribution. The work-units of the customers follow a normal distribution ~N(5,0.5) truncated within the range [5,15].***
@@ -24,3 +22,8 @@ totalLoops = 5000
 ```
 
 5000 iterations on a 2019 Macbook pro (Intel Core i7 9750H) took almost 5 minutes. At the end of the run, it will produce graphs. Therefore, make sure you save them before your next iteration. Otherwise they will be overwritten. In linux and MacOS they will be found in the **Home** folder. In windows, I'm not sure, haven't done enough testing. 
+
+**Note**: *The normal distribution is calculated with integers instead of decimals, further debugging is required and is likely skewing simulation results by a tracable amount.*
+
+##Screenshots of simulation run: 1000 iterations(days).
+![Title](githubLinkToPhoto?raw=true)
