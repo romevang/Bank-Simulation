@@ -1,0 +1,6 @@
+1000 Loops with No Priority Queue, 10 Tellers, ~N(5,0.5) Customer Distribution 
+Average Customer Workunit Transaction: 5.321288 
+Average Customer Wait Time: 16.758736 
+Average Customers Unserved Per Day: 21.606000 
+Average Customers Served Per Work Day: 138.394000 
+
