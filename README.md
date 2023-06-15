@@ -1,7 +1,7 @@
 # Bank-Simulation Project - Spring 2022
 This project was for my [CSCI 154](https://www.fresnostate.edu/catalog/courses-by-department/computer-science/#csci154) - Simulation course at CSU - Fresno.
 
-Prompt:
+### Project Prompt:
 ***Simulate a bank with 10 windows with the same efficiency of 10 wu/hr. Assume that 160 customers arrive in a working day (of 8 hours) following a uniform distribution. The work-units of the customers follow a normal distribution ~N(5,0.5) truncated within the range [5,15].***
 
 To execute, run *main.py* in a terminal or your favorite integrated development environment. Code was written using python 3.8 but will execute on newer versions as well.
