@@ -23,7 +23,7 @@ totalLoops = 5000
 
 5000 iterations on a 2019 Macbook pro (Intel Core i7 9750H) took almost 5 minutes. At the end of the run, it will produce graphs. Therefore, make sure you save them before your next iteration. Otherwise they will be overwritten. In linux and MacOS they will be found in the **Home** folder. In windows, I'm not sure, haven't done enough testing. 
 
-**Note**: *The normal distribution is calculated with integers instead of decimals, further debugging is required and is likely skewing simulation results by a tracable amount.*
+**Note**: *The normal distribution is calculated with integers instead of decimals, further debugging is required and is likely skewing simulation results by a tracable amount but for the purposes of this project, it was acceptable.*
 
 ## Screenshots of simulation run: 1000 iterations(days).
 ![Customer Arrival Times](https://github.com/romevang/Bank-Simulation/blob/main/Screenshots/1000%20days/Customer%20Arrival%20Times%20by%20Minute%20Over%201000%20Days%20(Iterations).png?raw=true)
