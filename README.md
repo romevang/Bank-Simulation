@@ -1,6 +1,11 @@
 # Bank-Simulation Project - Spring 2022
 This project was for my [CSCI 154](https://www.fresnostate.edu/catalog/courses-by-department/computer-science/#csci154) - Simulation course at CSU - Fresno.
 
+- Written by:
+[Romeo Vanegas](https://www.linkedin.com/in/romeovanegas)
+- Contributor:
+[Cristian Vanegas](https://www.linkedin.com/in/cristianvanegas/) - General Debugging/Fixed Mathplotlib
+
 ### Project Prompt:
 ***Simulate a bank with 10 windows with the same efficiency of 10 work-units/hour. Assume that 160 customers arrive in a working day (of 8 hours) following a uniform distribution. The work-units of the customers follow a normal distribution ~N(5,0.5) truncated within the range [5,15].***
 
