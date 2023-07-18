@@ -32,6 +32,6 @@ totalLoops = 5000
 
 ## Screenshots of simulation run: 1000 iterations(days).
 ![Customer Arrival Times](https://github.com/romevang/Bank-Simulation/blob/main/Screenshots/1000%20days/Customer%20Arrival%20Times%20by%20Minute%20Over%201000%20Days%20(Iterations).png?raw=true)
-![Wait Times](https://github.com/romevang/Bank-Simulation/blob/main/Screenshots/1000%20days/Customer%20Arrival%20Times%20by%20Minute%20Over%201000%20Days%20(Iterations).png?raw=true)
+![Wait Times](https://github.com/romevang/Bank-Simulation/blob/main/Screenshots/1000%20days/Customer%20Waiting%20Times%20Over%201000%20Days%20(Iterations)%20without%20Priority%20Queue.png?raw=true)
 ![Customers Not Served](https://github.com/romevang/Bank-Simulation/blob/af22d026c377fde1306b72c469f5422c3af19f54/Screenshots/1000%20days/Customers%20Not%20Served%20Over%201000%20Days%20(Iterations)%20without%20Priority%20Queue.png?raw=true)
 ![Customers Served](https://github.com/romevang/Bank-Simulation/blob/af22d026c377fde1306b72c469f5422c3af19f54/Screenshots/1000%20days/Customers%20Served%20Over%201000%20Days%20(Iterations)%20without%20Priority%20Queue.png?raw=true)
